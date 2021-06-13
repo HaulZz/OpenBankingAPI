@@ -8,21 +8,13 @@ using JWT.Algorithms;
 using JWT.Serializers;
 using System.IO;
 using System.Security.Claims;
+using JWT.Builder;
 
 namespace WebApplication1.Services
 {
     public class AuthenticationService
     {
-        public AuthenticationService()
-        {
-            PrivateKey = "-----BEGIN RSA PRIVATE KEY-----" +
-                "Insira aqui sua private_key" +
-                " END RSA PRIVATE KEY---- - ";
-        }
 
-
-
-        public static string PrivateKey { get; set; }
         public static AppData GetApplicationData()
         {
             AppData appData = new AppData()
@@ -45,47 +37,27 @@ namespace WebApplication1.Services
             string publicKey = File.ReadAllText(@"C:\Users\JiaHaoZhao\source\repos\WebApplication1\mykey.pem");
             string privateKey = File.ReadAllText(@"C:\Users\JiaHaoZhao\source\repos\WebApplication1\mykey.pub");
 
-            //var payload = new Payload()
-            //{
-            //    ClientId = appData.ClientId,
-            //    Exp = 321321,
-            //    Nbf = 32132132,
-            //    Aud = baseUrl,
-            //    Realm = "Stone_bank",
-            //    Sub = appData.ClientId,
-            //    Jti = "tempo",
-            //    Iat = 321321
-            //};
+            var token = JwtBuilder.Create()
+                      .WithAlgorithm(new HMACSHA256Algorithm()) // asymmetric
+                      .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
+                      .AddClaim("claim2", "claim2-value")
+                      .Encode();
+            // var payload = new Dictionary<string, object>
+            // {
+            //     {"userId", 1},
+            //     { "exp", 123456 },
+            // };
 
-            //var token = jwt.encode(payload, app_data.private_key, algorithm='RS256')
 
-            //object header =
-            //{
-            //    "Content-Type" : "application/x-www-form-urlencoded",
-            //    "User-Agent": "Insira aqui o Nome da Aplicação"
-            //};
 
-            var payload = new Dictionary<string, object>
-            {
-                { "exp", 123456 },
-                { "nbf", 123 },
-                { "aud",  baseUrl},
-                { "realm", "stone_bank"},
-                { "sub", appData.ClientId },
-                { "clientId", appData.ClientId },
-                { "jti", "time" },
-                { "iat", 123456 }
-            };
+            // IJwtAlgorithm algorithm = new RS256Algorithm(); // asymmetric
+            // IJsonSerializer serializer = new JsonNetSerializer();
+            // IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
+            // IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
 
-            const string secret = "GQDstcKsx0NHjPOuXOYg5MbeJ1XT0uFiwDVvVBrk";
-
-            IJwtAlgorithm algorithm = new RS256Algorithm(privateKey); // symmetric
-            IJsonSerializer serializer = new JsonNetSerializer();
-            IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
-            IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
-
-            var token = encoder.Encode(payload, secret);
+            // var token = encoder.Encode(payload, secret);
             Console.WriteLine(token);
 
         }
     }
+}

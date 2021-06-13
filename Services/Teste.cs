@@ -10,90 +10,92 @@ using System.IO;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using ThirdParty.BouncyCastle.OpenSsl;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Security;
-using AutoFixture;
 using JWT.Builder;
+using AutoFixture;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace WebApplication1.Services
 {
-    public class AuthenticationService
+    public class Teste
     {
-        public AuthenticationService()
-        {
-            PrivateKey = "-----BEGIN RSA PRIVATE KEY-----" +
-                "Insira aqui sua private_key" +
-                " END RSA PRIVATE KEY---- - ";
-        }
 
-
-
-        public static string PrivateKey { get; set; }
-        public static AppData GetApplicationData()
-        {
-            AppData appData = new AppData()
-            {
-                ClientId = 646546546,
-                BaseUrl = "",
-                BaseAuthUrl = "",
-                PrivateKey = ""
-            };
-            return appData;
-        }
-
-        public static void GetToken()
-        {
-            AppData appData = GetApplicationData();
-
-            var baseUrl = $"{appData.BaseAuthUrl}/auth/realms/stone_bank";
-            var authUrl = $"{baseUrl}/protocol/openid-connect/token";
-
-            string publicKey = File.ReadAllText(@"C:\Users\JiaHaoZhao\source\repos\WebApplication1\mykey.pem");
-            string privateKey = File.ReadAllText(@"C:\Users\JiaHaoZhao\source\repos\WebApplication1\mykey.pub");
-
-            var payload = new Payload()
-            {
-                ClientId = appData.ClientId,
-                Exp = 321321,
-                Nbf = 32132132,
-                Aud = baseUrl,
-                Realm = "Stone_bank",
-                Sub = appData.ClientId,
-                Jti = "tempo",
-                Iat = 321321
-            };
-
-            var token = jwt.encode(payload, app_data.private_key, algorithm = 'RS256')
-
-        object header =
-        {
-            "Content-Type" : "application/x-www-form-urlencoded",
-            "User-Agent": "Insira aqui o Nome da Aplicação"
-        };
-
-        var payload = new Dictionary<string, object>
-        {
-            { "exp", 123456 },
-            { "nbf", 123 },
-            { "aud",  baseUrl},
-            { "realm", "stone_bank"},
-            { "sub", appData.ClientId },
-            { "clientId", appData.ClientId },
-            { "jti", "time" },
-            { "iat", 123456 }
-        };
+        //public static AppData GetApplicationDatas()
+        //{
+        //    AppData appData = new AppData()
+        //    {
+        //        ClientId = 646546546,
+        //        BaseUrl = "",
+        //        BaseAuthUrl = "",
+        //        PrivateKey = ""
+        //    };
+        //    return appData;
+        //}
         private static readonly Fixture _fixture = new Fixture();
-        var publicKey = _fixture.Create<RSACryptoServiceProvider>();
+        public static string GetTokenRS256()
+        {
 
-        var token = JwtBuilder.Create()
-                              .WithAlgorithm(new RS256Algorithm(publicKey, privateKey)) // symmetric
-                              .WithSecret(secret)
-                              .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
-                              .AddClaim("claim2", "claim2-value")
-                              .Encode();
+            var payload = new Dictionary<string, object>
+            {
+                { "claim1", 0 },
+                { "claim2", "claim2-value" }
+            };
+            //var privateKey = _fixture.Create<RSACryptoServiceProvider>();
+            string publicKey = File.ReadAllText(@"C:\Users\Haul\Documents\C#\OpenBankingAPI\mykey.pub");
+            string privateKey = File.ReadAllText(@"C:\Users\Haul\Documents\C#\OpenBankingAPI\mykey.pem");
 
-        Console.WriteLine(token);
+            IJwtAlgorithm algorithm = new RS256Algorithm(
+                new X509Certificate2(
+                Encoding.ASCII.GetBytes(privateKey))); // symmetric
+            IJsonSerializer serializer = new JsonNetSerializer();
+            IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
+            IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
 
-    }
-    }
+            var token = encoder.Encode(payload, privateKey);
+            Console.WriteLine(token);
+            return token;
+        }
+
+        public static string GetTokenSHA256()
+        {
+            const string secret = "GQDstcKsx0NHjPOuXOYg5MbeJ1XT0uFiwDVvVBrk";
+            //var payload = new Dictionary<string, object>
+            //{
+            //    { "claim1", 0 },
+            //    { "claim2", "claim2-value" }
+            //};
+
+
+            //IJwtAlgorithm algorithm = new HMACSHA256Algorithm(); // symmetric
+            //IJsonSerializer serializer = new JsonNetSerializer();
+            //IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
+            //IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
+
+            //var token = encoder.Encode(payload, secret);
+            string privateKey = File.ReadAllText(@"C:\Users\Haul\Documents\C#\OpenBankingAPI\mykey.pem");
+
+            var token = JwtBuilder.Create()
+                      .WithAlgorithm(new HMACSHA256Algorithm()) // symmetric
+                      .WithSecret(privateKey)
+                      .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
+                      .AddClaim("claim2", "claim2-value")
+                      .Encode();
+
+            Console.WriteLine(token);
+            return token;
+        }
+        public static string DecodeTokenRS256()
+        {
+            string publicKey = File.ReadAllText(@"C:\Users\Haul\Documents\C#\OpenBankingAPI\mykey.pub");
+            const string token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjbGFpbTEiOjAsImNsYWltMiI6ImNsYWltMi12YWx1ZSJ9.8pwBI_HtXqI3UgQHQ_rDRnSQRxFL1SR8fbQoS-5kM5s";
+            var json = JwtBuilder.Create()
+                    .WithAlgorithm(new RS256Algorithm(new X509Certificate2(
+                Encoding.ASCII.GetBytes(publicKey)))) // asymmetric
+                    .MustVerifySignature()
+                    .Decode(token);
+            Console.WriteLine(json);
+            return json;
+        }
+       
+    }   
+}
