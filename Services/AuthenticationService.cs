@@ -15,6 +15,7 @@ namespace WebApplication1.Services
     public class AuthenticationService
     {
 
+
         public static AppData GetApplicationData()
         {
             AppData appData = new AppData()
