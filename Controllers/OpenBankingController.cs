@@ -15,11 +15,11 @@ namespace WebApplication1.Controllers
     public class OpenBankingController : ControllerBase
     {
         // GET: api/<ValuesController>
-        [HttpGet]
-        public ActionResult<string> Get()
+        [HttpPost]
+        public ActionResult<string> Post(StringData data)
         {
             //var encrypted = "";
-            return WebhookServices.Encrypt();
+            return WebhookServices.Encrypt_jose(data.Data);
         }
     }
 }

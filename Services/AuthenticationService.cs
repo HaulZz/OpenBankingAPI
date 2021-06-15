@@ -14,6 +14,8 @@ using System.Text;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Crypto.Parameters;
+using System.Security.Cryptography.X509Certificates;
+using Jose;
 
 namespace WebApplication1.Services
 {
@@ -45,11 +47,11 @@ namespace WebApplication1.Services
                 // exp = DateTime.UtcNow.AddMilliseconds(3600),
                 //nbf = DateTime.UtcNow.Date,
                 //aud = BASE_URL,
-                realm = "stone_bank", // melhorar isso? talvez
-                sub = "client_id", // todo:  obter nosso client_id
-                clientId = "client_id", // todo:  obter nosso client_id,
-                                        // jti = DateTime.UtcNow.Date,
-                                        //iat = DateTime.UtcNow.Date,
+                //realm = "stone_bank", // melhorar isso? talvez
+                //sub = "client_id", // todo:  obter nosso client_id
+                //clientId = "client_id", // todo:  obter nosso client_id,
+                //                        // jti = DateTime.UtcNow.Date,
+                //                        //iat = DateTime.UtcNow.Date,
                 claim1 = 2,
                 claim2 = "claim2-value"
             };
@@ -85,12 +87,28 @@ namespace WebApplication1.Services
             return token;
         }
 
+        public static string CreateToken_jose()
+        {
+            var payload = new Dictionary<string, object>()
+            {
+                { "claim1", 2 },
+                { "claim2", "claim2-value" }
+            };
+
+            //var privateKey = new X509Certificate2("privatekey.pem").GetRSAPrivateKey();
+            var privateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
+            string token = Jose.JWT.Encode(payload, privateKey, JwsAlgorithm.RS256);
+
+            return token;
+        }
+
         public static string DecodeTokenRS256(string token)
         {
             var publicKey = GetPublicKeyFromPemFile(PublicKeyPath);
+            var privateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
 
             var json = JwtBuilder.Create()
-                .WithAlgorithm(new RS256Algorithm(publicKey, publicKey)) // asymmetric    
+                .WithAlgorithm(new RS256Algorithm(publicKey)) // asymmetric    
                 .MustVerifySignature()
                 .Decode(token);
             Console.WriteLine(json);
@@ -105,7 +123,7 @@ namespace WebApplication1.Services
             var provider = new UtcDateTimeProvider();
             IJwtValidator validator = new JwtValidator(serializer, provider);
             IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
-            IJwtAlgorithm algorithm = new RS256Algorithm(publicKey, publicKey);
+            IJwtAlgorithm algorithm = new RS256Algorithm(publicKey);
             IJwtDecoder decoder = new JwtDecoder(serializer, validator, urlEncoder, algorithm);
 
             var json = decoder.Decode(token, Encoding.ASCII.GetBytes(File.ReadAllText(PublicKeyPath)), verify: true);
@@ -113,9 +131,15 @@ namespace WebApplication1.Services
             return json;
         }
 
+        public static string DecodeTokenRS256_jose(string token)
+        {
+            var publicKey = GetPublicKeyFromPemFile(PublicKeyPath);
 
+            string json = Jose.JWT.Decode(token, publicKey, JwsAlgorithm.RS256);
+            return json;
+        }
 
-        private static RSACryptoServiceProvider GetPrivateKeyFromPemFile(string PrivateKeyPath)
+        public static RSACryptoServiceProvider GetPrivateKeyFromPemFile(string PrivateKeyPath)
         {
             string rsaPrivateKey = File.ReadAllText(PrivateKeyPath);
             var byteArray = Encoding.ASCII.GetBytes(rsaPrivateKey);
@@ -134,7 +158,7 @@ namespace WebApplication1.Services
             }
         }
 
-        private static RSACryptoServiceProvider GetPublicKeyFromPemFile(string PublicKeyPath)
+        public static RSACryptoServiceProvider GetPublicKeyFromPemFile(string PublicKeyPath)
         {
             using (TextReader publicKeyTextReader = new StringReader(File.ReadAllText(PublicKeyPath)))
             {
