@@ -3,38 +3,37 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WebApplication1.Services;
 using WebApplication1.Models;
+using WebApplication1.Services;
+
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace WebApplication1.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class WebhookController : ControllerBase
+    public class StoneController : ControllerBase
     {
         // GET: api/<ValuesController>
         [HttpGet]
         public ActionResult<string> Get()
         {
-            return WebhookServices.CreateToken();
+            //var encrypted = "";
+            return WebhookServices.Encrypt();
         }
 
-        // GET api/<ValuesController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
-        {
-            return WebhookServices.GetTokenSHA256();
-        }
 
         // POST api/<ValuesController>
         [HttpPost]
-        public ActionResult<string> Post(Token encriptedBody)
+        public ActionResult<string> Post(string text)
         {
-            //return Teste.DecodeTokenRS256();
-
-            return WebhookServices.DecodeTokenRS256_2(encriptedBody.encrypted_body);
+            return WebhookServices.Decrypt();
         }
 
+        // PUT api/<ValuesController>/5
+        [HttpPut("{id}")]
+        public void Put(int id, [FromBody] string value)
+        {
+        }
     }
 }
