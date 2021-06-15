@@ -9,56 +9,144 @@ using JWT.Serializers;
 using System.IO;
 using System.Security.Claims;
 using JWT.Builder;
+using System.Security.Cryptography;
+using System.Text;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto.Parameters;
 
 namespace WebApplication1.Services
 {
     public class AuthenticationService
     {
+        public static string PrivateKeyPath = @"C:\Users\JiaHaoZhao\source\repos\WebApplication1\privatekey.pem";
+        public static string PublicKeyPath = @"C:\Users\JiaHaoZhao\source\repos\WebApplication1\publickey.pub";
 
 
-        public static AppData GetApplicationData()
+        public static string CreateToken()
         {
-            AppData appData = new AppData()
+            //var BASE_URL = SecretManagerContext.GetValue("TAG_APPLICATION_BANKACCOUNTAPI_SANDBOX_BASEBANK_URL");
+
+            //verificar melhor maneira de armazenar chave 
+            var header = new Dictionary<string, object>
+        {
+            { "{RS256}", "{JWT}" }
+        };
+
+            var privateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
+
+            var algorithm = new RS256Algorithm(privateKey, privateKey);
+            var serializer = new JsonNetSerializer();
+            var urlEncoder = new JwtBase64UrlEncoder();
+            var encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
+
+            var payload = new
             {
-                ClientId = 646546546,
-                BaseUrl = "",
-                BaseAuthUrl = "",
-                PrivateKey = ""
+                // exp = DateTime.UtcNow.AddMilliseconds(3600),
+                //nbf = DateTime.UtcNow.Date,
+                //aud = BASE_URL,
+                realm = "stone_bank", // melhorar isso? talvez
+                sub = "client_id", // todo:  obter nosso client_id
+                clientId = "client_id", // todo:  obter nosso client_id,
+                                        // jti = DateTime.UtcNow.Date,
+                                        //iat = DateTime.UtcNow.Date,
+                claim1 = 2,
+                claim2 = "claim2-value"
             };
-            return appData;
+
+            var token = encoder.Encode(header, payload, new byte[0]);
+
+            return token;
         }
 
-        public static void GetToken()
+        public static string CreateToken_2()
         {
-            AppData appData = GetApplicationData();
 
-            var baseUrl = $"{appData.BaseAuthUrl}/auth/realms/stone_bank";
-            var authUrl = $"{baseUrl}/protocol/openid-connect/token";
+            var payload = new Dictionary<string, object>
+            {
+                { "claim1", 2 },
+                { "claim2", "claim2-value" }
+            };
 
-            string publicKey = File.ReadAllText(@"C:\Users\JiaHaoZhao\source\repos\WebApplication1\mykey.pem");
-            string privateKey = File.ReadAllText(@"C:\Users\JiaHaoZhao\source\repos\WebApplication1\mykey.pub");
+            var header = new Dictionary<string, object>
+            {
+                { "{RS256}", "{JWT}" },
+            };
 
-            var token = JwtBuilder.Create()
-                      .WithAlgorithm(new HMACSHA256Algorithm()) // asymmetric
-                      .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
-                      .AddClaim("claim2", "claim2-value")
-                      .Encode();
-            // var payload = new Dictionary<string, object>
-            // {
-            //     {"userId", 1},
-            //     { "exp", 123456 },
-            // };
+            var privateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
 
+            IJwtAlgorithm algorithm = new RS256Algorithm(privateKey, privateKey);
+            IJsonSerializer serializer = new JsonNetSerializer();
+            IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
+            IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
 
-
-            // IJwtAlgorithm algorithm = new RS256Algorithm(); // asymmetric
-            // IJsonSerializer serializer = new JsonNetSerializer();
-            // IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
-            // IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
-
-            // var token = encoder.Encode(payload, secret);
+            var token = encoder.Encode(header, payload, new byte[0]);
             Console.WriteLine(token);
-
+            return token;
         }
+
+        public static string DecodeTokenRS256(string token)
+        {
+            var publicKey = GetPublicKeyFromPemFile(PublicKeyPath);
+
+            var json = JwtBuilder.Create()
+                .WithAlgorithm(new RS256Algorithm(publicKey, publicKey)) // asymmetric    
+                .MustVerifySignature()
+                .Decode(token);
+            Console.WriteLine(json);
+            return json;
+        }
+
+        public static string DecodeTokenRS256_2(string token)
+        {
+            var publicKey = GetPublicKeyFromPemFile(PublicKeyPath);
+
+            IJsonSerializer serializer = new JsonNetSerializer();
+            var provider = new UtcDateTimeProvider();
+            IJwtValidator validator = new JwtValidator(serializer, provider);
+            IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
+            IJwtAlgorithm algorithm = new RS256Algorithm(publicKey, publicKey);
+            IJwtDecoder decoder = new JwtDecoder(serializer, validator, urlEncoder, algorithm);
+
+            var json = decoder.Decode(token, Encoding.ASCII.GetBytes(File.ReadAllText(PublicKeyPath)), verify: true);
+            Console.WriteLine(json);
+            return json;
+        }
+
+
+
+        private static RSACryptoServiceProvider GetPrivateKeyFromPemFile(string PrivateKeyPath)
+        {
+            string rsaPrivateKey = File.ReadAllText(PrivateKeyPath);
+            var byteArray = Encoding.ASCII.GetBytes(rsaPrivateKey);
+            using (var ms = new MemoryStream(byteArray))
+            {
+                using (var sr = new StreamReader(ms))
+                {
+                    var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(sr);
+                    var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
+                    RSAParameters rsaParams = DotNetUtilities.ToRSAParameters(keyPair.Private as RsaPrivateCrtKeyParameters);
+
+                    RSACryptoServiceProvider csp = new RSACryptoServiceProvider();
+                    csp.ImportParameters(rsaParams);
+                    return csp;
+                }
+            }
+        }
+
+        private static RSACryptoServiceProvider GetPublicKeyFromPemFile(string PublicKeyPath)
+        {
+            using (TextReader publicKeyTextReader = new StringReader(File.ReadAllText(PublicKeyPath)))
+            {
+                RsaKeyParameters publicKeyParam = (RsaKeyParameters)new Org.BouncyCastle.OpenSsl.PemReader(publicKeyTextReader).ReadObject();
+
+                RSAParameters rsaParams = DotNetUtilities.ToRSAParameters((RsaKeyParameters)publicKeyParam);
+
+                RSACryptoServiceProvider csp = new RSACryptoServiceProvider();
+                csp.ImportParameters(rsaParams);
+                return csp;
+            }
+        }
+
     }
 }

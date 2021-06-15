@@ -19,6 +19,7 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.OpenSsl;
 using JWT.Exceptions;
+
 //using Tag.Library.SecretManager;
 
 namespace WebApplication1.Services
@@ -30,112 +31,6 @@ namespace WebApplication1.Services
         public static string PublicKeyPath = @"C:\Users\JiaHaoZhao\source\repos\WebApplication1\publickey.pub";
         //public static RSACryptoServiceProvider PrivateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
         //public static RSACryptoServiceProvider PublicKey = GetPrivateKeyFromPemFile(PublicKeyPath);
-
-        public static string GetTokenSHA256()
-        {
-            const string secret = "GQDstcKsx0NHjPOuXOYg5MbeJ1XT0uFiwDVvVBrk";
-            //var payload = new Dictionary<string, object>
-            //{
-            //    { "claim1", 0 },
-            //    { "claim2", "claim2-value" }
-            //};
-
-
-            //IJwtAlgorithm algorithm = new HMACSHA256Algorithm(); // symmetric
-            //IJsonSerializer serializer = new JsonNetSerializer();
-            //IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
-            //IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
-
-            //var token = encoder.Encode(payload, secret);
-            string privateKey = File.ReadAllText(@"C:\Users\JiaHaoZhao\source\repos\WebApplication1\mykey.pem");
-
-            var token = JwtBuilder.Create()
-                      .WithAlgorithm(new HMACSHA256Algorithm()) // symmetric
-                      .WithSecret(privateKey)
-                      .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
-                      .AddClaim("claim2", "claim2-value")
-                      .Encode();
-
-            Console.WriteLine(token);
-            return token;
-        }
-
-        public static string DecodeTokenSHA256(string token)
-        {
-            //var token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2MjM2Nzg3NjEsImNsYWltMiI6ImNsYWltMi12YWx1ZSJ9.h_EfnQFTRIZF9q41aAwWXnjPeF1Am3jjoAZOt11MqbA";
-            string privateKey = File.ReadAllText(@"C:\Users\JiaHaoZhao\source\repos\WebApplication1\mykey.pem");
-            var json = JwtBuilder.Create()
-                     .WithAlgorithm(new HMACSHA256Algorithm()) // symmetric
-                     .WithSecret(privateKey)
-                     .MustVerifySignature()
-                     .Decode(token);
-            Console.WriteLine(json);
-            return json;
-        }
-
-
-        public static string CreateToken()
-        {
-            //var BASE_URL = SecretManagerContext.GetValue("TAG_APPLICATION_BANKACCOUNTAPI_SANDBOX_BASEBANK_URL");
-
-            //verificar melhor maneira de armazenar chave 
-            var header = new Dictionary<string, object>
-        {
-            { "{RS256}", "{JWT}" }
-        };
-
-            var privateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
-
-            var algorithm = new RS256Algorithm(privateKey, privateKey);
-            var serializer = new JsonNetSerializer();
-            var urlEncoder = new JwtBase64UrlEncoder();
-            var encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
-
-            var payload = new
-            {
-               // exp = DateTime.UtcNow.AddMilliseconds(3600),
-                //nbf = DateTime.UtcNow.Date,
-                //aud = BASE_URL,
-                realm = "stone_bank", // melhorar isso? talvez
-                sub = "client_id", // todo:  obter nosso client_id
-                clientId = "client_id", // todo:  obter nosso client_id,
-               // jti = DateTime.UtcNow.Date,
-                //iat = DateTime.UtcNow.Date,
-                claim1 = 2,
-                claim2 = "claim2-value"
-            };
-
-            var token = encoder.Encode(header, payload, new byte[0]);
-
-            return token;
-        }
-
-        public static string CreateToken_2()
-        {
-
-            var payload = new Dictionary<string, object>
-            {
-                { "claim1", 2 },
-                { "claim2", "claim2-value" }
-            };
-
-            var header = new Dictionary<string, object>
-            {
-                { "{RS256}", "{JWT}" },
-            };
-            //var privateKey1 = _fixture.Create<RSACryptoServiceProvider>();
-
-            var privateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
-
-            IJwtAlgorithm algorithm = new RS256Algorithm(privateKey, privateKey); // symmetric
-            IJsonSerializer serializer = new JsonNetSerializer();
-            IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
-            IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
-
-            var token = encoder.Encode(header, payload, new byte[0]);
-            Console.WriteLine(token);
-            return token;
-        }
 
         public static string Encrypt()
         {
@@ -152,34 +47,6 @@ namespace WebApplication1.Services
             var privateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
             var decryptedBytes = privateKey.Decrypt(Convert.FromBase64String(encrypted), false);
             return Encoding.UTF8.GetString(decryptedBytes, 0, decryptedBytes.Length);
-        }
-
-        public static string DecodeTokenRS256(string token)
-        {
-            var publicKey = GetPublicKeyFromPemFile(PublicKeyPath);
-
-            var json = JwtBuilder.Create()
-                .WithAlgorithm(new RS256Algorithm(publicKey, publicKey)) // asymmetric    
-                .MustVerifySignature()
-                .Decode(token);
-            Console.WriteLine(json);
-            return json;
-        }
-
-        public static string DecodeTokenRS256_2(string token)
-        {
-            var publicKey = GetPublicKeyFromPemFile(PublicKeyPath);
-
-            IJsonSerializer serializer = new JsonNetSerializer();
-            var provider = new UtcDateTimeProvider();
-            IJwtValidator validator = new JwtValidator(serializer, provider);
-            IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
-            IJwtAlgorithm algorithm = new RS256Algorithm(publicKey, publicKey); 
-            IJwtDecoder decoder = new JwtDecoder(serializer, validator, urlEncoder, algorithm);
-
-            var json = decoder.Decode(token, Encoding.ASCII.GetBytes(File.ReadAllText(PublicKeyPath)), verify: true);
-            Console.WriteLine(json);
-            return json;
         }
 
         private static RSACryptoServiceProvider GetPrivateKeyFromPemFile(string PrivateKeyPath)
@@ -201,9 +68,9 @@ namespace WebApplication1.Services
             }
         }
 
-        private static RSACryptoServiceProvider GetPublicKeyFromPemFile(String filePath)
+        private static RSACryptoServiceProvider GetPublicKeyFromPemFile(string PublicKeyPath)
         {
-            using (TextReader publicKeyTextReader = new StringReader(File.ReadAllText(filePath)))
+            using (TextReader publicKeyTextReader = new StringReader(File.ReadAllText(PublicKeyPath)))
             {
                 RsaKeyParameters publicKeyParam = (RsaKeyParameters)new Org.BouncyCastle.OpenSsl.PemReader(publicKeyTextReader).ReadObject();
 
@@ -215,5 +82,6 @@ namespace WebApplication1.Services
             }
         }
 
-    }   
+
+    }
 }

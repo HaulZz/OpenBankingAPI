@@ -7,6 +7,6 @@ namespace WebApplication1.Models
 {
     public class Token
     {
-        public string encrypted_body { get; set; }
+        public string token { get; set; }
     }
 }

@@ -11,20 +11,13 @@ namespace WebApplication1.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class WebhookController : ControllerBase
+    public class TokenController : ControllerBase
     {
         // GET: api/<ValuesController>
         [HttpGet]
         public ActionResult<string> Get()
         {
-            return WebhookServices.CreateToken();
-        }
-
-        // GET api/<ValuesController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
-        {
-            return WebhookServices.GetTokenSHA256();
+            return AuthenticationService.CreateToken();
         }
 
         // POST api/<ValuesController>
@@ -33,7 +26,7 @@ namespace WebApplication1.Controllers
         {
             //return Teste.DecodeTokenRS256();
 
-            return WebhookServices.DecodeTokenRS256_2(encriptedBody.encrypted_body);
+            return AuthenticationService.DecodeTokenRS256(encriptedBody.token);
         }
 
     }
