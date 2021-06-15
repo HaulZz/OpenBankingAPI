@@ -18,8 +18,7 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public ActionResult<string> Post(StringData data)
         {
-            var token = WebhookServices.Decrypt_jose(data.Data);
-            return AuthenticationService.DecodeTokenRS256_jose(token);
+            return WebhookService.Read(data.Encrypted_body);
         }
     }
 }

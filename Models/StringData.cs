@@ -8,5 +8,6 @@ namespace WebApplication1.Models
     public class StringData
     {
         public string Data { get; set; }
+        public string Encrypted_body { get; set; }
     }
 }

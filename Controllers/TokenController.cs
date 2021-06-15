@@ -17,14 +17,14 @@ namespace WebApplication1.Controllers
         [HttpGet]
         public ActionResult<string> Get()
         {
-            return AuthenticationService.CreateToken_jose();
+            return CoderService.CreateToken_jose();
         }
 
         // POST api/<ValuesController>
         [HttpPost]
         public ActionResult<string> Post(Token encriptedBody)
         {
-            return AuthenticationService.DecodeTokenRS256_jose(encriptedBody.token);
+            return CoderService.DecodeTokenRS256_jose(encriptedBody.token);
         }
 
     }

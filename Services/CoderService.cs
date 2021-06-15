@@ -19,7 +19,7 @@ using Jose;
 
 namespace WebApplication1.Services
 {
-    public class AuthenticationService
+    public class CoderService
     {
         public static string PrivateKeyPath = @"C:\Users\JiaHaoZhao\source\repos\WebApplication1\privatekey.pem";
         public static string PublicKeyPath = @"C:\Users\JiaHaoZhao\source\repos\WebApplication1\publickey.pub";
@@ -95,7 +95,6 @@ namespace WebApplication1.Services
                 { "claim2", "claim2-value" }
             };
 
-            //var privateKey = new X509Certificate2("privatekey.pem").GetRSAPrivateKey();
             var privateKey = GetPrivateKeyFromPemFile(PrivateKeyPath);
             string token = Jose.JWT.Encode(payload, privateKey, JwsAlgorithm.RS256);
 

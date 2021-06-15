@@ -19,7 +19,7 @@ namespace WebApplication1.Controllers
         public ActionResult<string> Post(StringData data)
         {
             //var encrypted = "";
-            return WebhookServices.Encrypt_jose(data.Data);
+            return CryptographyService.Encrypt_jose(data.Data);
         }
     }
 }
